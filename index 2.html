@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>InfoCrítica — Pensamiento Crítico Digital</title>
+<meta name="description" content="Laboratorio Ciudadano de Pensamiento Crítico Digital. Detecta desinformación electoral en 15 minutos.">
+<meta property="og:title" content="InfoCrítica — Pensamiento Crítico Digital">
+<meta property="og:description" content="¿Distinguirías una noticia falsa en tu feed? Descúbrelo en 15 minutos.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#012340">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:   #012340;
+  --forest: #025939;
+  --green:  #03A63C;
+  --lime:   #04D939;
+  --white:  #FFFFFF;
+  --muted:  #C8DFF0;
+  --card:   rgba(255,255,255,0.07);
+  --border: rgba(4,217,57,0.25);
+  --red:    #EF5350;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--navy);
+  color: var(--white);
+  min-height: 100vh;
+  font-size: 15px;
+  line-height: 1.6;
+  max-width: 600px;
+  margin: 0 auto;
+  overflow-x: hidden;
+}
+.screen { display: none; min-height: 100vh; flex-direction: column; padding-top: 28px; }
+.screen.active { display: flex; animation: fi .22s ease; }
+@keyframes fi { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── PROGRESS & XP ── */
+#pb { position: fixed; top: 0; left: 0; right: 0; height: 3px; background: rgba(255,255,255,0.08); z-index: 50; max-width: 600px; margin: 0 auto; }
+#step-bar{position:fixed;top:3px;left:0;right:0;z-index:49;max-width:600px;margin:0 auto;background:rgba(1,35,64,0.95);border-bottom:1px solid rgba(255,255,255,0.06);padding:5px 10px;display:flex;gap:2px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+.step{flex:1;text-align:center;font-size:8px;font-weight:600;color:rgba(200,223,240,0.25);padding:4px 2px;border-radius:3px;transition:all .3s;white-space:nowrap;overflow:hidden;}
+.step.active{color:var(--lime);background:rgba(4,217,57,0.1);}
+.step.done{color:rgba(200,223,240,0.45);}
+#pf { height: 100%; background: linear-gradient(90deg, var(--forest), var(--lime)); transition: width .4s; width: 0; }
+#xpb { position: fixed; top: 10px; right: 12px; background: var(--forest); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-family: 'Syne', sans-serif; font-size: 13px; color: var(--lime); z-index: 50; transition: transform .15s; }
+#xpb.pop { transform: scale(1.18); }
+#toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(70px); background: var(--forest); border: 1px solid var(--lime); border-radius: 10px; padding: 10px 18px; font-size: 13px; font-weight: 600; color: var(--lime); z-index: 99; transition: transform .28s ease; max-width: 90vw; text-align: center; }
+#toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ── BUTTONS ── */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 13px 22px; border: none; border-radius: 8px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: opacity .15s, transform .12s; }
+.btn:active { transform: scale(0.97); }
+.btn-p { background: var(--lime); color: var(--navy); }
+.btn-o { background: transparent; color: var(--lime); border: 1.5px solid var(--lime); }
+.btn:disabled { opacity: .35; pointer-events: none; }
+.btn-s { padding: 9px 16px; font-size: 13px; }
+
+/* ── NAV FOOTER ── */
+.nav-f { margin-top: auto; display: flex; justify-content: space-between; align-items: center; padding: 14px 16px 20px; border-top: 1px solid rgba(255,255,255,0.07); }
+.ndots { display: flex; gap: 5px; }
+.ndot { width: 6px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.2); transition: all .25s; }
+.ndot.a { width: 18px; background: var(--lime); }
+
+/* ── SECTION HEADER ── */
+.sh { padding: 20px 16px 14px; border-left: 3px solid var(--lime); margin: 8px 16px 18px; }
+.slbl { font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--lime); margin-bottom: 6px; }
+.sti { font-family: 'Syne', sans-serif; font-size: clamp(22px,5vw,32px); font-weight: 800; line-height: 1.15; }
+.sds { color: var(--muted); font-size: 14px; margin-top: 8px; }
+
+/* ── S0 PORTADA ── */
+#s0 { justify-content: center; align-items: center; text-align: center; padding: 32px 16px; background: radial-gradient(ellipse 90% 50% at 50% 0%, rgba(2,89,57,.4) 0%, transparent 70%); }
+.logo-r { width: 68px; height: 68px; border-radius: 50%; border: 2px solid var(--lime); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 26px; }
+.t0 { font-family: 'Syne', sans-serif; font-size: clamp(44px,11vw,76px); font-weight: 800; line-height: .95; background: linear-gradient(135deg,#fff 40%,var(--lime)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.s0sub { font-family: 'Syne', sans-serif; font-size: 12px; color: var(--green); font-weight: 700; letter-spacing: .09em; text-transform: uppercase; margin: 10px 0 26px; }
+.s0tag { max-width: 380px; margin: 0 auto 28px; font-size: 15px; line-height: 1.7; color: var(--muted); }
+.s0tag strong { color: var(--white); }
+.mcards { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 28px; width: 100%; max-width: 360px; }
+.mcard { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 8px; text-align: center; }
+.mcard .mi { font-size: 20px; margin-bottom: 4px; }
+.mcard .ml { font-size: 11px; color: var(--lime); font-weight: 700; text-transform: uppercase; }
+.mcard .md { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* ── S1 HOTSPOTS ── */
+.hs-scene { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px 14px; margin: 0 16px; }
+.pq { font-family: 'Syne', sans-serif; font-size: clamp(15px,3.5vw,19px); font-weight: 700; line-height: 1.35; border-left: 3px solid var(--lime); padding-left: 12px; margin-bottom: 18px; }
+.pq em { color: var(--lime); font-style: normal; }
+.pq small { display: block; font-size: 12px; color: var(--muted); font-weight: 400; margin-top: 6px; }
+.hs-grid { display: flex; flex-direction: column; gap: 10px; }
+.hs-card { background: rgba(2,89,57,.25); border: 1px solid var(--border); border-radius: 10px; padding: 13px 14px; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background .2s, border-color .2s; }
+.hs-card.open { background: rgba(2,89,57,.5); border-color: var(--lime); }
+.hs-top { display: flex; align-items: center; gap: 10px; }
+.hs-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.hs-dot.open { background: var(--green); }
+.hs-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; color: var(--lime); text-transform: uppercase; letter-spacing: .06em; }
+.hs-ico { margin-left: auto; font-size: 18px; color: var(--muted); }
+.hs-body { font-size: 13px; line-height: 1.65; color: var(--muted); margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.08); display: none; }
+.hs-body.open { display: block; }
+.hs-body strong { color: var(--white); }
+.hs-cnt { text-align: right; font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+.hs-cnt span { color: var(--lime); font-weight: 700; }
+.tip { margin: 12px 16px 0; background: rgba(4,217,57,.07); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 13px; color: var(--muted); line-height: 1.6; }
+.tip strong { color: var(--white); }
+
+/* ── S2 CLASIFICACIÓN ── */
+.dd-info { margin: 0 16px 12px; background: rgba(4,217,57,.07); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 13px; color: var(--muted); line-height: 1.6; }
+.dd-info strong { color: var(--lime); }
+.dd-score-bar { margin: 0 16px 12px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 14px; }
+.dd-snum { font-family: 'Syne', sans-serif; font-size: 30px; font-weight: 800; color: var(--lime); line-height: 1; }
+.dd-slbl { font-size: 12px; color: var(--muted); }
+.dd-plbl { margin-left: auto; font-size: 12px; color: var(--muted); }
+.dd-plbl span { color: var(--lime); font-weight: 700; }
+.dd-pool { margin: 0 16px; }
+.dd-card { margin-bottom: 4px; }
+.dd-num { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+.dd-txt { font-size: 14px; line-height: 1.6; color: var(--white); margin-bottom: 14px; }
+.dd-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn-v { background: rgba(4,217,57,.12); color: var(--lime); border: 1.5px solid var(--lime); }
+.btn-d { background: rgba(239,83,80,.12); color: var(--red); border: 1.5px solid var(--red); }
+.result-item { background: rgba(255,255,255,.05); border-radius: 7px; padding: 9px 11px; display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+.ri-ico { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.ri-txt { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.ri-why { font-size: 11px; color: rgba(200,223,240,.65); margin-top: 2px; }
+
+/* ── S3 QUIZ ── */
+.q-headline { margin: 0 16px 12px; background: rgba(1,35,64,.8); border: 1.5px solid rgba(255,255,255,.12); border-left: 4px solid var(--muted); border-radius: 10px; padding: 14px 16px; }
+.qh-tag { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
+.qh-txt { font-style: italic; font-size: 14px; line-height: 1.6; color: var(--white); }
+.q-pips { display: flex; gap: 6px; margin: 0 16px 12px; }
+.q-pip { height: 4px; flex: 1; border-radius: 3px; background: rgba(255,255,255,.1); transition: background .25s; }
+.q-pip.done { background: var(--lime); }
+.q-pip.active { background: var(--green); }
+.q-block { margin: 0 16px; }
+.q-num { font-size: 11px; color: var(--lime); font-weight: 600; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; }
+.q-txt { font-family: 'Syne', sans-serif; font-weight: 700; font-size: clamp(16px,3.5vw,19px); margin-bottom: 13px; line-height: 1.3; }
+.q-opt { background: var(--card); border: 1.5px solid rgba(255,255,255,.12); border-radius: 9px; padding: 13px 14px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px; -webkit-tap-highlight-color: transparent; transition: border-color .15s, background .15s; margin-bottom: 9px; }
+.q-opt:active { background: rgba(4,217,57,.08); }
+.q-opt.ok { border-color: var(--lime); background: rgba(4,217,57,.14); }
+.q-opt.wrong { border-color: var(--red); background: rgba(239,83,80,.1); }
+.q-opt.locked { pointer-events: none; }
+.q-opt.locked:not(.ok):not(.wrong) { opacity: .4; }
+.q-letter { min-width: 26px; height: 26px; border-radius: 50%; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 11px; flex-shrink: 0; }
+.q-fb { margin-top: 10px; padding: 11px 14px; border-radius: 8px; font-size: 13px; line-height: 1.55; display: none; }
+.q-fb.ok { background: rgba(4,217,57,.1); border: 1px solid var(--green); color: #A8F5BE; }
+.q-fb.wrong { background: rgba(239,83,80,.1); border: 1px solid var(--red); color: #FFBBB9; }
+.q-hint { margin: 12px 16px 0; padding: 12px 14px; background: var(--card); border-radius: 9px; font-size: 12px; color: var(--muted); line-height: 1.6; }
+.q-hint strong { color: var(--white); }
+
+/* ── S4 BURBUJA ── */
+.bub-wrap { margin: 0 16px; }
+.slb-lbl { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.slb-lbl span { color: var(--lime); font-weight: 700; }
+#dvs { width: 100%; -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; outline: none; cursor: pointer; margin-bottom: 6px; background: linear-gradient(to right, var(--lime) 0%, rgba(255,255,255,.15) 0%); }
+#dvs::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: var(--lime); cursor: pointer; border: 3px solid var(--navy); box-shadow: 0 0 0 2px var(--lime); }
+#dvs::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: var(--lime); border: 3px solid var(--navy); cursor: pointer; }
+.slb-ends { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 14px; }
+.feed-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.feed-clbl { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,.08); }
+.feed-post { background: var(--card); border: 1px solid rgba(255,255,255,.07); border-radius: 9px; padding: 10px; margin-bottom: 8px; position: relative; overflow: hidden; }
+.feed-post::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+.fp-bias::before { background: var(--red); }
+.fp-ok::before { background: var(--lime); }
+.fp-src { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.fp-txt { font-size: 12px; color: var(--white); line-height: 1.5; }
+.fp-tag { display: inline-block; margin-top: 5px; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.tag-b { background: rgba(239,83,80,.15); color: #FFBBB9; }
+.tag-v { background: rgba(4,217,57,.1); color: var(--lime); }
+.tag-c { background: rgba(3,166,60,.15); color: #A8F5BE; }
+.bub-insight { background: rgba(2,89,57,.3); border: 1px solid var(--border); border-radius: 10px; padding: 13px 14px; font-size: 13px; color: var(--muted); line-height: 1.65; margin-bottom: 12px; }
+.bub-insight strong { color: var(--white); }
+.rfl-label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; }
+.rfl-ta { background: var(--card); border: 1.5px solid rgba(255,255,255,.12); border-radius: 9px; padding: 12px 14px; color: var(--white); font-family: 'Inter', sans-serif; font-size: 14px; resize: vertical; min-height: 74px; outline: none; width: 100%; transition: border-color .15s; }
+.rfl-ta:focus { border-color: var(--lime); }
+.rfl-ta::placeholder { color: rgba(200,223,240,.4); }
+.rfl-ok { font-size: 12px; color: var(--lime); padding: 4px 0; display: none; }
+
+/* ── S5 RESULTADOS ── */
+.res-hero { text-align: center; padding: 26px 16px 18px; }
+.res-tp { font-size: 52px; display: block; margin-bottom: 10px; }
+.res-t { font-family: 'Syne', sans-serif; font-size: clamp(22px,6vw,36px); font-weight: 800; background: linear-gradient(135deg,#fff,var(--lime)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.res-s { color: var(--muted); font-size: 14px; margin-top: 6px; }
+.stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin: 0 16px 16px; }
+.stat-c { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 8px; text-align: center; }
+.stat-n { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: var(--lime); line-height: 1; }
+.stat-l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-top: 5px; }
+.skill-bars { margin: 0 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+.skill-row { display: flex; flex-direction: column; gap: 5px; }
+.skill-meta { display: flex; justify-content: space-between; font-size: 13px; }
+.skill-name { color: var(--white); }
+.skill-pct { color: var(--lime); font-family: 'Syne', sans-serif; font-weight: 700; }
+.skill-track { height: 7px; background: rgba(255,255,255,.08); border-radius: 4px; overflow: hidden; }
+.skill-fill { height: 100%; background: linear-gradient(90deg,var(--forest),var(--lime)); width: 0; transition: width 1s ease; border-radius: 4px; }
+.badge-box { margin: 0 16px 16px; padding: 16px; background: linear-gradient(135deg,rgba(2,89,57,.4),rgba(4,217,57,.1)); border: 1px solid var(--lime); border-radius: 12px; text-align: center; }
+.badge-ico { font-size: 34px; margin-bottom: 6px; }
+.badge-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 17px; color: var(--lime); }
+.badge-desc { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.closing { margin: 0 16px 16px; padding: 15px 16px; background: var(--card); border-left: 3px solid var(--lime); border-radius: 0 10px 10px 0; font-size: 14px; line-height: 1.7; color: var(--muted); }
+.closing strong { color: var(--white); }
+.closing small { font-size: 11px; color: rgba(200,223,240,.5); display: block; margin-top: 8px; }
+.res-cta { display: flex; gap: 10px; justify-content: center; margin: 0 16px 32px; flex-wrap: wrap; }
+
+/* ── PRETEST ── */
+#spt { justify-content: flex-start; padding-top: 28px; }
+.pt-hero { text-align: center; padding: 0 16px 20px; }
+.pt-badge { display: inline-block; background: rgba(4,217,57,.1); border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--lime); margin-bottom: 12px; }
+.pt-title { font-family: 'Syne', sans-serif; font-size: clamp(20px,5vw,28px); font-weight: 800; color: var(--white); margin-bottom: 8px; line-height: 1.2; }
+.pt-desc { font-size: 13px; color: var(--muted); line-height: 1.6; max-width: 380px; margin: 0 auto; }
+.pt-pips { display: flex; gap: 6px; margin: 0 16px 14px; }
+.pt-pip { height: 4px; flex: 1; border-radius: 3px; background: rgba(255,255,255,.1); transition: background .25s; }
+.pt-pip.done { background: var(--lime); }
+.pt-pip.active { background: var(--green); }
+.pt-block { margin: 0 16px; }
+.pt-note { margin: 0 16px; padding: 10px 14px; background: rgba(255,255,255,.04); border-radius: 8px; font-size: 11px; color: rgba(200,223,240,.5); line-height: 1.5; text-align: center; margin-top: 10px; }
+/* ── LEARNING GAIN ── */
+.gain-box { margin: 0 16px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.gain-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--lime); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; }
+.gain-row { display: grid; grid-template-columns: 80px 1fr 50px; gap: 10px; align-items: center; margin-bottom: 8px; }
+.gain-lbl { font-size: 12px; color: var(--muted); }
+.gain-track { height: 8px; background: rgba(255,255,255,.08); border-radius: 4px; overflow: hidden; }
+.gain-fill { height: 100%; border-radius: 4px; transition: width 1.2s ease; }
+.gain-fill.pre  { background: rgba(255,255,255,.3); }
+.gain-fill.post { background: linear-gradient(90deg, var(--forest), var(--lime)); }
+.gain-pct { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; color: var(--lime); text-align: right; }
+.gain-delta { text-align: center; padding: 10px; background: rgba(4,217,57,.08); border-radius: 8px; margin-top: 8px; }
+.gain-delta .d-num { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: var(--lime); }
+.gain-delta .d-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+
+/* ── SOCIAL POST CARDS ── */
+.post{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;margin-bottom:10px;transition:transform .15s,border-color .3s,box-shadow .3s;}
+.post.shake{animation:shk .4s ease;}
+.post.glow{border-color:var(--lime);box-shadow:0 0 20px rgba(4,217,57,0.15);}
+@keyframes shk{0%,100%{transform:translateX(0);}20%{transform:translateX(-6px);}40%{transform:translateX(6px);}60%{transform:translateX(-3px);}80%{transform:translateX(3px);}}
+.post-hd{display:flex;align-items:center;gap:10px;padding:12px 14px 0;}
+.post-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.av-a{background:rgba(239,83,80,0.15);border:1.5px solid rgba(239,83,80,0.3);color:var(--red);}
+.av-o{background:rgba(4,217,57,0.12);border:1.5px solid rgba(4,217,57,0.3);color:var(--lime);}
+.av-m{background:rgba(100,150,255,0.12);border:1.5px solid rgba(100,150,255,0.3);color:#6496FF;}
+.av-w{background:rgba(37,211,102,0.12);border:1.5px solid rgba(37,211,102,0.3);color:#25D366;}
+.post-mi{flex:1;min-width:0;}
+.post-nm{font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px;}
+.p-vf{width:13px;height:13px;border-radius:50%;background:#1DA1F2;display:flex;align-items:center;justify-content:center;font-size:7px;color:#fff;}
+.p-nv{width:13px;height:13px;border-radius:50%;background:rgba(239,83,80,0.25);display:flex;align-items:center;justify-content:center;font-size:7px;color:var(--red);}
+.post-hn{font-size:11px;color:var(--muted);opacity:.55;}
+.post-bd{padding:8px 14px 10px;font-size:13px;line-height:1.55;}
+.p-urg{color:var(--red);font-weight:700;}
+.p-ht{color:#1DA1F2;}
+.post-eg{display:flex;gap:16px;padding:0 14px 8px;font-size:10px;color:var(--muted);opacity:.4;}
+.post-sr{padding:7px 14px;border-top:1px solid rgba(255,255,255,0.05);font-size:10px;color:var(--muted);display:flex;align-items:center;gap:5px;}
+.sr-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.sr-r{background:var(--red);}
+.sr-g{background:var(--lime);}
+.post-act{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid rgba(255,255,255,0.06);}
+.pa-btn{padding:11px;text-align:center;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer;border:none;-webkit-tap-highlight-color:transparent;transition:background .15s;}
+.pa-btn:active{opacity:.7;}
+.pa-v{background:rgba(4,217,57,0.05);color:var(--lime);border-right:1px solid rgba(255,255,255,0.04);}
+.pa-d{background:rgba(239,83,80,0.05);color:var(--red);}
+.post-fb{padding:10px 14px;font-size:12px;line-height:1.5;display:none;}
+.post-fb.ok{background:rgba(4,217,57,0.07);color:#A8F5BE;border-top:2px solid var(--lime);}
+.post-fb.err{background:rgba(239,83,80,0.07);color:#FFBBB9;border-top:2px solid var(--red);}
+.post-fb strong{color:var(--white);}
+
+/* ── RESULTS REVEAL ── */
+.rv{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease;}
+.rv.show{opacity:1;transform:translateY(0);}
+.xp-count{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;color:var(--lime);line-height:1;}
+.badge-reveal{text-align:center;padding:20px;margin:0 16px 16px;background:linear-gradient(135deg,rgba(2,89,57,0.4),rgba(4,217,57,0.1));border:1px solid var(--lime);border-radius:14px;opacity:0;transform:scale(0.85);transition:all .5s cubic-bezier(0.34,1.56,0.64,1);}
+.badge-reveal.show{opacity:1;transform:scale(1);}
+
+/* ── SLIDER BACKGROUND SHIFT ── */
+.bub-wrap{transition:background .4s;}
+.bub-wrap.closed{background:rgba(239,83,80,0.04);border-radius:12px;padding:16px;margin:0 16px;}
+.bub-wrap.open{background:rgba(4,217,57,0.04);border-radius:12px;padding:16px;margin:0 16px;}
+</style>
+</head>
+<body>
+
+<div id="pb"><div id="pf"></div></div>
+<div id="step-bar"><div class="step active">Inicio</div><div class="step">Test</div><div class="step">Contexto</div><div class="step">Misión 1</div><div class="step">Misión 2</div><div class="step">Misión 3</div><div class="step">Resultado</div></div>
+<div id="xpb">&#9889; <span id="xv">0</span> XP</div>
+<div id="toast"></div>
+
+<!-- ═══════════════ S0: PORTADA ═══════════════ -->
+<div class="screen active" id="s0">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:32px 16px;text-align:center;">
+    <div class="logo-r">&#128269;</div>
+    <h1 class="t0">InfoCrítica</h1>
+    <p class="s0sub">Laboratorio Ciudadano &middot; Pensamiento Crítico Digital</p>
+    <p class="s0tag">Antes de terminar el desayuno ya consumiste <strong>6 contenidos sobre política.</strong> Ninguno lo elegiste tú. Tres tenían información falsa. ¿Sabrías cuáles?</p>
+    <button class="btn btn-p" onclick="goTo(1)" style="font-size:16px;padding:15px 32px;width:100%;max-width:300px;">Iniciar misión &#8594;</button>
+    <p style="margin-top:13px;font-size:12px;color:var(--muted);">4 módulos &middot; ~15 min &middot; Ganas XP en cada etapa</p>
+    <div class="mcards" style="margin-top:28px;">
+      <div class="mcard"><div class="mi">&#127919;</div><div class="ml">Detectar</div><div class="md">Desinformación</div></div>
+      <div class="mcard"><div class="mi">&#129504;</div><div class="ml">Analizar</div><div class="md">Fuentes</div></div>
+      <div class="mcard"><div class="mi">&#128172;</div><div class="ml">Deliberar</div><div class="md">Con evidencia</div></div>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--muted);text-align:center;">&#128204; 15 titulares electorales · 5 al azar por sesión · cada partida es distinta</div>
+    <div style="margin-top:14px;font-size:11px;color:rgba(200,223,240,0.35);text-align:center;letter-spacing:.06em;">Desarrollado por <span style="color:rgba(200,223,240,0.6);font-weight:600;">Jesús Manuel Otálora Atencio</span> · UTB 2026</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════ SPT: PRETEST ═══════════════ -->
+<div class="screen" id="spt">
+  <div class="pt-hero">
+    <div class="pt-badge">&#128203; Diagnóstico rápido</div>
+    <div class="pt-title">Antes de comenzar,<br>3 preguntas rápidas</div>
+    <div class="pt-desc">No hay respuestas buenas ni malas. Solo queremos saber tu punto de partida — al final verás cuánto aprendiste.</div>
+  </div>
+  <div class="pt-pips" id="pt-pips"></div>
+  <div id="pt-area" class="pt-block"></div>
+  <div class="pt-note">&#128274; Tus respuestas son anónimas y solo se usan para medir el aprendizaje.</div>
+  <div class="nav-f">
+    <button class="btn btn-o btn-s" onclick="goTo(0)">&#8592; Inicio</button>
+    <div class="ndots" id="ndpt"></div>
+    <button class="btn btn-p btn-s" id="btn-pt" onclick="goTo(2)" disabled>Continuar &#8594;</button>
+  </div>
+</div>
+
+<!-- ═══════════════ S1: CONTEXTO + HOTSPOTS ═══════════════ -->
+<div class="screen" id="s1">
+  <div class="sh">
+    <div class="slbl">Módulo 1 &middot; Contexto</div>
+    <div class="sti">El problema que nadie te explicó</div>
+    <div class="sds">Toca cada tarjeta para revelar los tres fenómenos detrás de la desinformación.</div>
+  </div>
+  <div class="hs-scene">
+    <div class="pq">
+      "Las mismas plataformas que democratizan el acceso a la información amplifican la
+      <em>desinformación, la polarización afectiva y los discursos antidemocráticos.</em>"
+      <small>— García-Orosa, 2021</small>
+    </div>
+    <div class="hs-grid">
+      <div class="hs-card" id="hc0" onclick="openHotspot(0)">
+        <div class="hs-top">
+          <div class="hs-dot" id="hd0" style="background:#EF5350"></div>
+          <div class="hs-name">&#129302; El Algoritmo</div>
+          <div class="hs-ico" id="hi0">＋</div>
+        </div>
+        <div class="hs-body" id="hb0">
+          Los sistemas de TikTok, Instagram y YouTube priorizan contenido que genera reacción emocional — no contenido verdadero. García-Orosa (2021) llama a esto la <strong>cuarta ola de la democracia digital</strong>: bots, astroturfing y arquitecturas que erosionan el debate público.
+        </div>
+      </div>
+      <div class="hs-card" id="hc1" onclick="openHotspot(1)">
+        <div class="hs-top">
+          <div class="hs-dot" id="hd1" style="background:#FF9800"></div>
+          <div class="hs-name">&#129703; La Burbuja</div>
+          <div class="hs-ico" id="hi1">＋</div>
+        </div>
+        <div class="hs-body" id="hb1">
+          Si consumes 3 videos con el mismo sesgo político, el algoritmo te da 30 más. Eso es una <strong>burbuja de filtro</strong>. Mont'Alverne et al. (2024) demuestran que la creencia en desinformación está ligada al patrón de consumo de noticias.
+        </div>
+      </div>
+      <div class="hs-card" id="hc2" onclick="openHotspot(2)">
+        <div class="hs-top">
+          <div class="hs-dot" id="hd2" style="background:#42A5F5"></div>
+          <div class="hs-name">&#128379; Tu Voto</div>
+          <div class="hs-ico" id="hi2">＋</div>
+        </div>
+        <div class="hs-body" id="hb2">
+          Ecker et al. (2024) documentan que la desinformación amenaza la democracia más de lo que suele reconocerse — socava la capacidad ciudadana de decidir con información veraz. En Colombia 2026, esto es urgente.
+        </div>
+      </div>
+    </div>
+    <div class="hs-cnt">Revelados: <span id="hcnt">0</span>/3 &nbsp;&middot;&nbsp; <span style="color:var(--green)">Toca para desbloquear</span></div>
+  </div>
+
+  <!-- VIDEO CONTEXTUAL — thumbnail + botón de play -->
+  <div style="margin:16px 16px 0;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+    <div style="padding:12px 14px 8px;display:flex;align-items:center;gap:8px;">
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--forest);display:flex;align-items:center;justify-content:center;font-size:13px;">&#9654;</div>
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:var(--lime);">VIDEO CONTEXTUAL</div>
+        <div style="font-size:11px;color:var(--muted);">DW Español &middot; Fuente periodística internacional verificada</div>
+      </div>
+    </div>
+
+    <!-- Thumbnail clicable — proporción 9:16 para Short -->
+    <a href="https://youtu.be/Hbps2zjjeZM" target="_blank" rel="noopener"
+       style="display:block;position:relative;padding-bottom:177.78%;height:0;overflow:hidden;cursor:pointer;text-decoration:none;">
+
+      <!-- Thumbnail de YouTube (carga automática) -->
+      <img
+        src="https://img.youtube.com/vi/Hbps2zjjeZM/hqdefault.jpg"
+        alt="Desinformación en redes sociales — DW Español"
+        style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;"
+        onerror="this.src='';this.style.background='linear-gradient(160deg,#012340,#025939)';">
+
+      <!-- Overlay oscuro -->
+      <div style="position:absolute;inset:0;background:rgba(1,35,64,0.45);"></div>
+
+      <!-- Badge DW -->
+      <div style="position:absolute;top:12px;left:12px;background:rgba(1,35,64,0.85);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-family:'Syne',sans-serif;font-weight:700;font-size:11px;color:var(--lime);letter-spacing:.06em;">DW ESPAÑOL</div>
+
+      <!-- Duración -->
+      <div style="position:absolute;top:12px;right:12px;background:rgba(0,0,0,0.75);border-radius:4px;padding:3px 7px;font-size:11px;color:var(--white);font-weight:600;">SHORT</div>
+
+      <!-- Botón play central -->
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:56px;height:56px;border-radius:50%;background:var(--lime);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(4,217,57,0.5);">
+        <div style="font-size:20px;color:var(--navy);margin-left:3px;">&#9654;</div>
+      </div>
+
+      <!-- Título en la parte inferior -->
+      <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(1,35,64,0.95),transparent);padding:20px 14px 14px;">
+        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--white);line-height:1.3;">Desinformación en redes sociales: ¿cómo detectarla?</div>
+        <div style="font-size:11px;color:var(--lime);margin-top:4px;">Toca para ver en YouTube &#8599;</div>
+      </div>
+    </a>
+
+    <div style="padding:10px 14px;font-size:12px;color:var(--muted);line-height:1.5;">
+      &#128214; <em>Las redes sociales amplifican la desinformación más fácilmente que cualquier otro medio. DW Español — cadena pública internacional de Alemania presente en más de 160 países — analiza cómo funciona ese mecanismo y cómo protegerse.</em>
+    </div>
+  </div>
+  <div class="tip">&#128204; <strong>Marco CER:</strong> En InfoCrítica evaluamos información con <em>Claim (Afirmación) &rarr; Evidence (Evidencia) &rarr; Reasoning (Razonamiento)</em>. Lo aplicarás en las siguientes misiones.</div>
+  <div class="nav-f">
+    <button class="btn btn-o btn-s" onclick="goTo(1)">&#8592; Diagnóstico</button>
+    <div class="ndots" id="nd1"></div>
+    <button class="btn btn-p btn-s" id="btn-hs" onclick="goTo(3)" disabled>Misión 1 &#8594;</button>
+  </div>
+</div>
+
+<!-- ═══════════════ S2: CLASIFICACIÓN ═══════════════ -->
+<div class="screen" id="s2">
+  <div class="sh">
+    <div class="slbl">Misión 1 &middot; Clasificación</div>
+    <div class="sti">Detecta lo falso en tu feed</div>
+  </div>
+  <div class="dd-info">
+    <strong>Cómo jugar:</strong> Lee cada titular y presiona <span style="color:var(--lime)">&#9989; Verificado</span> o <span style="color:var(--red)">&#10060; Falso</span>. Se evalúa la fuente, el lenguaje y la evidencia — no si coincide con tu opinión.
+  </div>
+  <div style="margin:0 16px 12px;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;font-size:12px;color:var(--muted);line-height:1.6;">
+    &#128221; <strong style="color:var(--white)">Nota académica:</strong> Los titulares y cuentas de esta actividad son ejemplos hipotéticos creados con fines didácticos. No representan personas, medios ni declaraciones reales. Los criterios de evaluación sí están basados en metodología de fact-checking verificada (Wineburg &amp; McGrew, 2019).
+  </div>
+  <div class="dd-score-bar">
+    <div class="dd-snum" id="dd-score">0</div>
+    <div><div class="dd-slbl">Aciertos</div><div style="font-size:11px;color:var(--muted)">de 5 posibles</div></div>
+    <div class="dd-plbl">Respondidas: <span id="dd-placed">0</span>/5</div>
+  </div>
+  <div class="dd-pool" id="dd-pool"></div>
+  <div style="margin:12px 16px 0" id="dd-results"></div>
+  <div class="nav-f">
+    <button class="btn btn-o btn-s" onclick="goTo(2)">&#8592; Contexto</button>
+    <div class="ndots" id="nd2"></div>
+    <button class="btn btn-p btn-s" id="btn-dd" onclick="goTo(4)" disabled>Misión 2 &#8594;</button>
+  </div>
+</div>
+
+<!-- ═══════════════ S3: QUIZ ═══════════════ -->
+<div class="screen" id="s3">
+  <div class="sh">
+    <div class="slbl">Misión 2 &middot; Quiz Secuencial</div>
+    <div class="sti">Analiza como periodista</div>
+  </div>
+  <div class="q-headline">
+    <div class="qh-tag">Titular hipotético para análisis:</div>
+    <div class="qh-txt">"Estudio revela que el 73% de los colombianos apoya al candidato Y — según encuesta propia del partido"</div>
+  </div>
+  <div style="margin:0 16px 12px;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;font-size:12px;color:var(--muted);line-height:1.6;">
+    &#128221; Este titular es un <strong style="color:var(--white)">ejemplo hipotético</strong> diseñado para practicar análisis de fuentes. El porcentaje y el candidato son ficticios. El método de verificación que aplicas sí es real: corresponde al marco CER y al Civic Online Reasoning de Stanford (Wineburg &amp; McGrew, 2019).
+  </div>
+  <div class="q-pips" id="q-pips"></div>
+  <div id="q-area" class="q-block"></div>
+  <div class="q-hint">&#128161; <strong>Marco CER:</strong> ¿Quién afirma esto? ¿Qué evidencia presenta? ¿El razonamiento conecta evidencia y afirmación sin saltos lógicos?</div>
+  <div class="nav-f">
+    <button class="btn btn-o btn-s" onclick="goTo(3)">&#8592; Misión 1</button>
+    <div class="ndots" id="nd3"></div>
+    <button class="btn btn-p btn-s" id="btn-quiz" onclick="goTo(5)" disabled>Misión 3 &#8594;</button>
+  </div>
+</div>
+
+<!-- ═══════════════ S4: BURBUJA ═══════════════ -->
+<div class="screen" id="s4">
+  <div class="sh">
+    <div class="slbl">Misión 3 &middot; Simulación</div>
+    <div class="sti">Rompe tu burbuja</div>
+    <div class="sds">Mueve el slider y observa cómo cambia tu feed cuando el algoritmo detecta que quieres diversidad.</div>
+  </div>
+  <div class="bub-wrap">
+    <div class="slb-lbl">Diversidad algorítmica: <span id="div-pct">0%</span></div>
+    <input type="range" id="dvs" min="0" max="100" value="0" oninput="updateBubble(this.value)">
+    <div class="slb-ends"><span>Burbuja cerrada</span><span>Feed diverso</span></div>
+    <div class="feed-cols">
+      <div>
+        <div class="feed-clbl" style="color:var(--red)">Tu feed actual &#128241;</div>
+        <div class="feed-post fp-bias" id="fp0"><div class="fp-src">@noticiasverdad &middot; 2 min</div><div class="fp-txt">El gobierno MIENTE sobre las cifras. ¡Despierta!</div><span class="fp-tag tag-b">Sesgo confirmatorio</span></div>
+        <div class="feed-post fp-bias" id="fp1"><div class="fp-src">Patriota_Col &middot; 5 min</div><div class="fp-txt">Video FILTRADO revela lo que no quieren que sepas &#128071;</div><span class="fp-tag tag-b">Lenguaje alarmista</span></div>
+        <div class="feed-post fp-bias" id="fp2"><div class="fp-src">DefensaPatria &middot; 11 min</div><div class="fp-txt">Comparte antes que lo borren: la verdad oculta &#128308;</div><span class="fp-tag tag-b">Sin fuente</span></div>
+        <div style="font-size:10px;color:rgba(200,223,240,0.45);margin-top:4px;line-height:1.5;">* Cuentas y publicaciones ficticias, creadas para fines educativos.</div>
+      </div>
+      <div>
+        <div class="feed-clbl" style="color:var(--lime)">Feed diverso &#9989;</div>
+        <div class="feed-post fp-ok" id="fn0" style="opacity:.12"><div class="fp-src">El Tiempo &middot; 3 min</div><div class="fp-txt">DANE: desempleo baja 0.6 puntos en el trimestre</div><span class="fp-tag tag-v">Fuente oficial</span></div>
+        <div class="feed-post fp-ok" id="fn1" style="opacity:.12"><div class="fp-src">La Silla Vacía &middot; 8 min</div><div class="fp-txt">¿Qué dice la reforma pensional? Claves para entenderla</div><span class="fp-tag tag-c">Análisis verificado</span></div>
+        <div class="feed-post fp-ok" id="fn2" style="opacity:.12"><div class="fp-src">Colombia Check &middot; 15 min</div><div class="fp-txt">El video viral del candidato es de 2019 y está descontextualizado</div><span class="fp-tag tag-v">Fact-check</span></div>
+      </div>
+    </div>
+    <div class="bub-insight" id="bub-ins"><strong>Burbuja activa.</strong> Tu feed muestra solo contenido que confirma lo que ya crees. El algoritmo no busca informarte — busca que sigas scrolleando. Mueve el slider para ver qué cambia.</div>
+    <label class="rfl-label" style="margin-top:14px;">&#9999;&#65039; ¿Sobre qué tema crees que tu feed tiene atrapada tu atención?</label>
+    <textarea class="rfl-ta" id="rfl-ta" placeholder="Escribe en una frase..." oninput="checkReflection()"></textarea>
+    <div class="rfl-ok" id="rfl-ok">&#9989; Guardado. La metacognición es el primer paso para salir de la burbuja.</div>
+  </div>
+  <div class="nav-f">
+    <button class="btn btn-o btn-s" onclick="goTo(4)">&#8592; Misión 2</button>
+    <div class="ndots" id="nd4"></div>
+    <button class="btn btn-p btn-s" onclick="goTo(6)">Ver resultados &#8594;</button>
+  </div>
+</div>
+
+<!-- ═══════════════ S5: RESULTADOS ═══════════════ -->
+<div class="screen" id="s5">
+  <div class="res-hero">
+    <span class="res-tp" id="res-tp">&#127885;</span>
+    <div class="res-t" id="res-t">Misión completada</div>
+    <div class="res-s" id="res-s">Tu perfil de pensamiento crítico digital</div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-c"><div class="stat-n" id="r-xp">0</div><div class="stat-l">XP Total</div></div>
+    <div class="stat-c"><div class="stat-n" id="r-dd">0/5</div><div class="stat-l">Detector</div></div>
+    <div class="stat-c"><div class="stat-n" id="r-qz">0/4</div><div class="stat-l">Analista</div></div>
+  </div>
+  <div class="skill-bars">
+    <div class="skill-row"><div class="skill-meta"><span class="skill-name">&#128269; Alfabetización mediática</span><span class="skill-pct" id="sp1">0%</span></div><div class="skill-track"><div class="skill-fill" id="sf1"></div></div></div>
+    <div class="skill-row"><div class="skill-meta"><span class="skill-name">&#129518; Comprensión algorítmica</span><span class="skill-pct" id="sp2">0%</span></div><div class="skill-track"><div class="skill-fill" id="sf2"></div></div></div>
+    <div class="skill-row"><div class="skill-meta"><span class="skill-name">&#128172; Calidad argumentativa</span><span class="skill-pct" id="sp3">0%</span></div><div class="skill-track"><div class="skill-fill" id="sf3"></div></div></div>
+  </div>
+  <div class="badge-box">
+    <div class="badge-ico" id="badge-ico">&#128304;</div>
+    <div class="badge-name" id="badge-name">Nivel: Aprendiz</div>
+    <div class="badge-desc" id="badge-desc">Completaste el laboratorio básico de InfoCrítica</div>
+  </div>
+  <div class="gain-box" id="gain-box">
+    <div class="gain-title">&#128200; Tu ganancia de aprendizaje</div>
+    <div class="gain-row">
+      <div class="gain-lbl">Al entrar</div>
+      <div class="gain-track"><div class="gain-fill pre" id="gain-pre-fill" style="width:0%"></div></div>
+      <div class="gain-pct" id="gain-pre-pct">0%</div>
+    </div>
+    <div class="gain-row">
+      <div class="gain-lbl">Al salir</div>
+      <div class="gain-track"><div class="gain-fill post" id="gain-post-fill" style="width:0%"></div></div>
+      <div class="gain-pct" id="gain-post-pct">0%</div>
+    </div>
+    <div class="gain-delta">
+      <div class="d-num" id="gain-delta-num">—</div>
+      <div class="d-lbl" id="gain-delta-lbl">calculando...</div>
+    </div>
+  </div>
+
+  <div class="closing">
+    No se trata de desconfiar de todo. Se trata de saber cuándo preguntar:
+    <strong>¿quién dice esto, por qué, y con qué evidencia?</strong>
+    <br><br>
+    <span style="display:block;margin-bottom:6px;font-size:13px;color:var(--white);font-weight:600;">Lo que acabas de practicar tiene nombre:</span>
+    <span style="display:block;margin-bottom:5px;font-size:13px;">&#128269; <strong style="color:var(--white)">Freire:</strong> reconociste cómo el algoritmo moldea tu lectura del mundo sin que lo decidas conscientemente — eso es concientización digital.</span>
+    <span style="display:block;margin-bottom:5px;font-size:13px;">&#9878;&#65039; <strong style="color:var(--white)">Habermas:</strong> aplicaste condiciones de validez del discurso democrático — fuente, evidencia, razonamiento — antes de compartir o creer algo.</span>
+    <span style="display:block;font-size:13px;">&#129504; <strong style="color:var(--white)">Vygotsky:</strong> pasaste de Aprendiz a Analista con soporte gradual del sistema. Eso es zona de desarrollo próximo en acción.</span>
+    <small>UTB Maestría en Educación Mediada por las TIC &middot; Diseño de prototipos educativos &middot; 2026</small>
+  </div>
+  <div class="res-cta">
+    <button class="btn btn-p" onclick="restart()">&#128260; Volver a jugar</button>
+    <button class="btn btn-o" onclick="shareResult()">&#128228; Compartir</button>
+    <button class="btn btn-o" onclick="exportCSV()">&#128202; Exportar datos</button>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   ESTADO GLOBAL
+═══════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════
+   INFOCRITICA v2.0 — JSON DATA LAYER
+═══════════════════════════════════════════════════ */
+var INFOCRITICA_DATA = {
+  version: '2.0',
+  contexto: 'electoral_colombia_2026',
+  pretest: [
+    {
+      id: 'pt1',
+      q: '¿Qué harías si ves una noticia política impactante en redes sin nombre de autor?',
+      opts: ['La comparto si coincide con lo que pienso', 'Busco si otros medios verificados la cubren', 'La ignoro siempre', 'La marco como favorita para leerla después'],
+      correct: 1
+    },
+    {
+      id: 'pt2',
+      q: 'Una cuenta publica: "URGENTE: ley secreta aprobada — comparte antes de que lo borren". ¿Qué señal de alerta ves?',
+      opts: ['El lenguaje alarmista y la ausencia de fuente verificable', 'Que sea urgente — eso garantiza que es verdad', 'Que pida que lo compartas', 'Ninguna, parece una noticia normal'],
+      correct: 0
+    },
+    {
+      id: 'pt3',
+      q: '¿Qué significa "lectura lateral" al verificar una noticia?',
+      opts: ['Leer el artículo completo de arriba a abajo', 'Buscar en otras fuentes independientes si el dato aparece confirmado', 'Leer entre líneas lo que el autor quiere decir', 'Comparar dos noticias del mismo medio'],
+      correct: 1
+    }
+  ],
+  titulares: [
+    /* ── BANCO 1: Desinformación electoral (señales: fuente, lenguaje, evidencia) ── */
+    { id: 't01', text: '"Candidato X admite recibir fondos de Venezuela" — Fuente: @patriota_col (cuenta anónima)', correct: 'd', why: 'Fuente anónima en redes sin respaldo de ningún medio verificado. García-Orosa (2021) identifica este patrón como astroturfing: contenido diseñado para aparentar respaldo popular espontáneo.' },
+    { id: 't02', text: 'Tasa de desempleo en Colombia cayó al 8.4% en marzo — Fuente: DANE (comunicado oficial)', correct: 'v', why: 'DANE es la entidad oficial de estadísticas del Estado colombiano. El dato es verificable en dane.gov.co.' },
+    { id: 't03', text: '"URGENTE: Gobierno prepara ley secreta para controlar redes sociales" (sin fuente, sin fecha)', correct: 'd', why: 'Lenguaje alarmista ("URGENTE", "secreta") + ausencia total de fuente. Ecker et al. (2024) documenta que este tipo de contenido se propaga 6 veces más rápido que un hecho verificado.' },
+    { id: 't04', text: 'Congreso aprueba reforma pensional en segundo debate — Fuente: El Tiempo, Semana', correct: 'v', why: 'Dos medios independientes cubren el mismo hecho. Wineburg & McGrew (2019) llaman a esto verificación lateral: cuando varias fuentes confirman el dato sin citarse entre sí.' },
+    { id: 't05', text: '"Video: manifestantes PAGADOS $50.000 para protestar contra el gobierno" (video editado, sin fuente)', correct: 'd', why: 'Afirmación sin evidencia verificable. El video editado es manipulación visual — una técnica documentada por Ecker et al. (2024) como vector de desinformación electoral.' },
+    /* ── BANCO 2: Más titulares electorales para variación ── */
+    { id: 't06', text: '"Encuesta revela que el 89% rechaza al candidato Y — fuente: encuesta propia del partido rival"', correct: 'd', why: 'La fuente de la encuesta es el propio partido rival — conflicto de interés directo. Mont\'Alverne et al. (2024) demuestra que la creencia en datos electorales depende de quién los produce.' },
+    { id: 't07', text: 'Registraduría Nacional confirma calendario electoral 2026: inscripciones abiertas desde marzo — Fuente: registraduria.gov.co', correct: 'v', why: 'Fuente institucional oficial del Estado colombiano con URL verificable. Dato de servicio público, no de opinión.' },
+    { id: 't08', text: '"OJO: descubrimos que el software de votación fue hackeado — comparte para que se sepa" (cuenta con 3 días de creación)', correct: 'd', why: 'Cuenta recién creada difundiendo una acusación sin pruebas técnicas. García-Orosa (2021) señala que cuentas recientes difundiendo contenido viral es un indicador de bots en procesos electorales.' },
+    { id: 't09', text: 'MOE presenta informe de riesgos electorales para 2026 en 187 municipios — Fuente: Misión de Observación Electoral', correct: 'v', why: 'La MOE es una organización de la sociedad civil reconocida, con metodología pública y trayectoria en observación electoral colombiana.' },
+    { id: 't10', text: '"Filtran audio del candidato Z planeando fraude electoral" (audio de 8 segundos, sin contexto, sin medio que lo publique)', correct: 'd', why: 'Audio descontextualizado sin publicación en medios verificados. Buckingham (2019) señala que la brevedad y la descontextualización son herramientas de manipulación mediática.' },
+    { id: 't11', text: 'Corte Constitucional declara exequible la ley de garantías electorales — Fuente: comunicado Corte Constitucional, La Silla Vacía', correct: 'v', why: 'Fuente judicial oficial + medio de análisis político verificado. Doble confirmación independiente.' },
+    { id: 't12', text: '"Los medios no te muestran esto: miles marcharon contra el candidato y lo censuran" (video sin geolocalización ni fecha)', correct: 'd', why: 'Narrativa de "censura" sin evidencia de que los medios hayan omitido la información. El video sin metadatos (fecha, lugar) no puede verificarse — señal de desinformación visual.' },
+    { id: 't13', text: 'DANE publica proyecciones de potencial electoral por departamento para 2026 — Fuente: censo.dane.gov.co', correct: 'v', why: 'Datos demográficos de la autoridad estadística nacional, accesibles en repositorio público con metodología transparente.' },
+    { id: 't14', text: '"Candidata W propone eliminar las pensiones de todos los colombianos" — Fuente: meme viral sin enlace al programa de gobierno', correct: 'd', why: 'Atribución de propuesta sin citar el programa de gobierno oficial. Un meme no es fuente. Habermas (1987) exige que cualquier afirmación en el discurso democrático sea verificable.' },
+    { id: 't15', text: 'Colombia Check verifica: "La foto de la supuesta marcha es de 2019, no de 2026" — Fuente: colombiacheck.com', correct: 'v', why: 'Colombia Check es un medio de verificación certificado por la International Fact-Checking Network (IFCN). Su método de verificación es público y auditable.' }
+  ],
+  quiz: [
+    {
+      q: '¿Quién realizó la encuesta mencionada en el titular?',
+      opts: ['Un medio independiente', 'El propio partido político', 'Una universidad pública', 'No se especifica'],
+      correct: 1,
+      ok:  'Exacto. Fuente interesada = conflicto de interés. Señal roja en el análisis CER.',
+      err: 'El titular dice "encuesta propia del partido". Quien la contrata tiene interés en el resultado.'
+    },
+    {
+      q: '¿Qué implica una "encuesta propia del partido"?',
+      opts: ['Mayor credibilidad por experiencia', 'Posible sesgo de selección de muestra', 'Datos oficiales del Estado', 'Muestra representativa garantizada'],
+      correct: 1,
+      ok:  'Nadie contrata una encuesta para publicar resultados que lo perjudiquen. El sesgo de selección es casi inevitable.',
+      err: 'Correcto es sesgo de selección. Quien paga tiene incentivos para diseñarla a su favor.'
+    },
+    {
+      q: '¿Cómo verificarías este dato antes de compartirlo?',
+      opts: ['Compartiéndolo a mis contactos', 'Buscando la metodología y el tamaño de muestra', 'Viendo cuántos likes tiene el post', 'Confiando si lo publicó alguien conocido'],
+      correct: 1,
+      ok:  'Metodología + tamaño muestral = las dos preguntas que toda encuesta seria debe responder.',
+      err: 'Los likes y la confianza social no validan datos. La metodología y la muestra sí.'
+    },
+    {
+      q: '¿Qué harías si no encuentras la metodología?',
+      opts: ['Compartirlo si coincide con mi posición', 'Ignorarlo completamente', 'Buscar si otros medios verificados cubren el dato', 'Reportarlo de inmediato como falso'],
+      correct: 2,
+      ok:  'Verificación lateral: buscar si fuentes independientes confirman el dato (Wineburg & McGrew, 2019).',
+      err: 'La verificación lateral es el paso correcto: comprueba si medios independientes confirman el dato.'
+    },
+    {
+      q: 'Una cuenta anónima publica un video de 8 segundos acusando a un candidato de fraude. ¿Qué elemento falta para tomarlo en serio?',
+      opts: ['Nada, el video es prueba suficiente', 'Contexto: quién grabó, cuándo, dónde, y si algún medio verificado lo cubre', 'Que tenga muchos comentarios apoyándolo', 'Que la persona del video hable claro'],
+      correct: 1,
+      ok:  'Buckingham (2019) señala que la descontextualización es herramienta de manipulación. Sin metadatos verificables, un video no prueba nada.',
+      err: 'Un video sin contexto (quién, cuándo, dónde) no es evidencia — es contenido manipulable.'
+    },
+    {
+      q: 'García-Orosa (2021) habla de la "cuarta ola de la democracia digital". ¿Qué la caracteriza?',
+      opts: ['Mayor participación ciudadana gracias a las redes', 'Bots, astroturfing y arquitecturas que erosionan el debate público', 'El uso de inteligencia artificial para gobernar', 'La digitalización completa del voto en todo el mundo'],
+      correct: 1,
+      ok:  'La cuarta ola no es progreso — es la fase donde las herramientas digitales se usan para desinformar, polarizar y debilitar la deliberación democrática.',
+      err: 'García-Orosa describe la cuarta ola como el momento en que bots y astroturfing erosionan el debate — no como avance democrático.'
+    },
+    {
+      q: 'Según Habermas, ¿qué condición debe cumplir una afirmación para ser válida en el discurso democrático?',
+      opts: ['Que la diga alguien famoso o influyente', 'Que sea verificable, sincera y comprensible para todos los participantes', 'Que genere muchas reacciones en redes', 'Que esté respaldada por el gobierno de turno'],
+      correct: 1,
+      ok:  'Habermas (1987) establece tres condiciones: veracidad, rectitud normativa y comprensibilidad. El marco CER de InfoCrítica traduce eso a un procedimiento verificable.',
+      err: 'Las condiciones habermasianas de validez son veracidad, rectitud y comprensibilidad — no popularidad ni respaldo gubernamental.'
+    },
+    {
+      q: 'Mont\'Alverne et al. (2024) encontraron que la creencia en desinformación electoral está ligada a:',
+      opts: ['El nivel educativo exclusivamente', 'El patrón de consumo de noticias, las plataformas usadas y la confianza en medios', 'La edad del votante', 'El partido político al que pertenece'],
+      correct: 1,
+      ok:  'El hallazgo central es que no es ignorancia — es el ecosistema informativo. Qué consumes, dónde lo consumes y en quién confías determina qué crees.',
+      err: 'Mont\'Alverne et al. demuestran que es el ecosistema de consumo informativo, no la educación ni la edad, lo que predice la creencia en desinformación.'
+    }
+  ]
+};
+
+/* ═══════════════════════════════════════════════════
+   KPIs — TELEMETRÍA DE APRENDIZAJE
+═══════════════════════════════════════════════════ */
+var KPI = {
+  session_id: null,
+  version: '2.0',
+  contexto: INFOCRITICA_DATA.contexto,
+  started_at: null,
+  screens: {},
+  pretest_score: 0,
+  pretest_answers: [],
+  dd_score: 0,
+  dd_decisions: [],
+  quiz_score: 0,
+  slider_final: 0,
+  reflection_length: 0,
+  completed: false,
+  completed_at: null,
+  total_time_sec: 0
+};
+
+function generateUUID() {
+  return 'xxxx-xxxx-xxxx'.replace(/x/g, function() {
+    return Math.floor(Math.random() * 16).toString(16);
+  });
+}
+
+function kpiEnterScreen(screenId) {
+  KPI.screens[screenId] = { entered: Date.now(), exited: null };
+}
+
+function kpiExitScreen(screenId) {
+  if (KPI.screens[screenId]) {
+    KPI.screens[screenId].exited = Date.now();
+    KPI.screens[screenId].duration_sec = Math.round(
+      (KPI.screens[screenId].exited - KPI.screens[screenId].entered) / 1000
+    );
+  }
+}
+
+function guardarDatos() {
+  KPI.completed = true;
+  KPI.completed_at = Date.now();
+  KPI.total_time_sec = Math.round((KPI.completed_at - KPI.started_at) / 1000);
+  KPI.slider_final = parseInt(document.getElementById('dvs').value || 0);
+  KPI.reflection_length = document.getElementById('rfl-ta').value.trim().length;
+  KPI.dd_score = ddScore;
+  KPI.quiz_score = quizScore;
+
+  var payload = JSON.stringify(KPI);
+
+  // Guardar en localStorage como fallback
+  try {
+    localStorage.setItem('infocritica_session_' + KPI.session_id, payload);
+  } catch(e) {}
+
+  /* STUB BACKEND — descomentar cuando tengas el API:
+  fetch('https://tu-api.com/save_session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: payload
+  }).catch(function(e) { console.warn('Backend no disponible:', e); });
+  */
+}
+
+/* ═══════════════════════════════════════════════════
+   ESTADO GLOBAL
+═══════════════════════════════════════════════════ */
+var xp = 0;
+var currentScreen = 0;
+var hsOpened = 0;
+var ddScore = 0;
+var ddDone = 0;
+var ddIndex = 0;
+var quizIndex = 0;
+var quizScore = 0;
+var reflectLocked = false;
+var pretestIndex = 0;
+var pretestScore = 0;
+var pretestDone = false;
+var ddDecisionStart = null;
+
+var SCREEN_IDS = ['s0', 'spt', 's1', 's2', 's3', 's4', 's5'];
+var PROGRESS    = [0, 10, 24, 40, 58, 76, 100];
+
+/* ═══════════════════════════════════════════════════
+   NAVEGACIÓN
+═══════════════════════════════════════════════════ */
+function goTo(n) {
+  kpiExitScreen(SCREEN_IDS[currentScreen]);
+  document.getElementById(SCREEN_IDS[currentScreen]).classList.remove('active');
+  currentScreen = n;
+  document.getElementById(SCREEN_IDS[n]).classList.add('active');
+  document.getElementById('pf').style.width = PROGRESS[n] + '%';
+  kpiEnterScreen(SCREEN_IDS[n]);
+  renderDots();
+  updateStepBar(n);
+  window.scrollTo(0, 0);
+
+  if (n === 1) renderPretest();
+  if (n === 4 && quizIndex === 0) renderQuestion();
+  if (n === 6) { guardarDatos(); renderResults(); }
+}
+
+function renderDots() {
+  var ids = ['nd1', 'nd2', 'nd3', 'nd4'];
+  for (var i = 0; i < ids.length; i++) {
+    var el = document.getElementById(ids[i]);
+    if (!el) continue;
+    el.innerHTML = '';
+    for (var j = 0; j < 6; j++) {
+      var d = document.createElement('div');
+      d.className = 'ndot' + (j === currentScreen ? ' a' : '');
+      el.appendChild(d);
+    }
+  }
+}
+
+renderDots();
+
+function updateStepBar(n){var s=document.querySelectorAll(".step");s.forEach(function(el,i){el.classList.remove("active","done");if(i===n)el.classList.add("active");else if(i<n)el.classList.add("done");});}
+updateStepBar(0);
+
+/* ═══════════════════════════════════════════════════
+   PRETEST
+═══════════════════════════════════════════════════ */
+function renderPretest() {
+  var pips = document.getElementById('pt-pips');
+  var area = document.getElementById('pt-area');
+  if (!pips || !area) return;
+
+  pips.innerHTML = '';
+  INFOCRITICA_DATA.pretest.forEach(function(_, i) {
+    var p = document.createElement('div');
+    p.className = 'pt-pip' + (i < pretestIndex ? ' done' : i === pretestIndex ? ' active' : '');
+    pips.appendChild(p);
+  });
+
+  if (pretestIndex >= INFOCRITICA_DATA.pretest.length) {
+    area.innerHTML =
+      '<div style="text-align:center;padding:24px 16px;">' +
+      '<div style="font-size:40px;margin-bottom:12px;">&#9989;</div>' +
+      '<div style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;color:var(--lime);">Diagnóstico completado</div>' +
+      '<div style="color:var(--muted);font-size:13px;margin-top:8px;">Al finalizar verás cuánto aprendiste.</div>' +
+      '</div>';
+    KPI.pretest_score = pretestScore;
+    var btn = document.getElementById('btn-pt');
+    if (btn) { btn.disabled = false; }
+    return;
+  }
+
+  var q = INFOCRITICA_DATA.pretest[pretestIndex];
+  var html = '<div class="q-num">Pregunta ' + (pretestIndex + 1) + ' de ' + INFOCRITICA_DATA.pretest.length + '</div>';
+  html += '<div class="q-txt">' + q.q + '</div>';
+  for (var k = 0; k < q.opts.length; k++) {
+    html += '<div class="q-opt" onclick="answerPretest(' + k + ')">' +
+      '<div class="q-letter">' + ['A','B','C','D'][k] + '</div>' +
+      '<span>' + q.opts[k] + '</span></div>';
+  }
+  area.innerHTML = html;
+}
+
+function answerPretest(idx) {
+  var q = INFOCRITICA_DATA.pretest[pretestIndex];
+  var isCorrect = (idx === q.correct);
+  if (isCorrect) pretestScore++;
+
+  KPI.pretest_answers.push({ id: q.id, answer: idx, correct: isCorrect });
+
+  // Sin feedback visible — es diagnóstico, no enseñanza
+  var opts = document.querySelectorAll('#pt-area .q-opt');
+  opts.forEach(function(o, i) {
+    o.classList.add('locked');
+    if (i === idx) o.style.opacity = '0.6';
+  });
+
+  pretestIndex++;
+  setTimeout(renderPretest, 600);
+}
+
+/* ═══════════════════════════════════════════════════
+   XP Y TOAST
+═══════════════════════════════════════════════════ */
+function addXP(amount, msg) {
+  xp += amount;
+  document.getElementById('xv').textContent = xp;
+  var badge = document.getElementById('xpb');
+  badge.classList.add('pop');
+  setTimeout(function() { badge.classList.remove('pop'); }, 200);
+  if (msg) showToast(msg);
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function() { t.classList.remove('show'); }, 2500);
+}
+
+/* ═══════════════════════════════════════════════════
+   S1: HOTSPOTS
+═══════════════════════════════════════════════════ */
+function openHotspot(idx) {
+  var body = document.getElementById('hb' + idx);
+  if (body.classList.contains('open')) return;
+
+  body.classList.add('open');
+  document.getElementById('hc' + idx).classList.add('open');
+  document.getElementById('hd' + idx).classList.add('open');
+  document.getElementById('hi' + idx).textContent = '－';
+
+  hsOpened++;
+  document.getElementById('hcnt').textContent = hsOpened;
+  addXP(20, '+20 XP · Fenómeno descubierto 🔍');
+
+  if (hsOpened === 3) {
+    document.getElementById('btn-hs').disabled = false;
+    addXP(30, '¡Todos revelados! +30 XP 🎉');
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   S2: CLASIFICACIÓN
+═══════════════════════════════════════════════════ */
+var DD_ITEMS = [];
+
+function shuffleAndPick(arr, n) {
+  var shuffled = arr.slice();
+  for (var i = shuffled.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var temp = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = temp;
+  }
+  return shuffled.slice(0, n);
+}
+
+function initDD() {
+  DD_ITEMS = shuffleAndPick(INFOCRITICA_DATA.titulares, 5);
+}
+
+function renderCard() {
+  ddDecisionStart = Date.now();
+  var pool = document.getElementById('dd-pool');
+  pool.innerHTML = '';
+  if (ddIndex >= DD_ITEMS.length) return;
+
+  var item = DD_ITEMS[ddIndex];
+  var card = document.createElement('div');
+  card.className = 'dd-card';
+  card.innerHTML =
+    '<div class="dd-num">Titular ' + (ddIndex + 1) + ' de ' + DD_ITEMS.length + '</div>' +
+    '<div class="dd-txt">' + item.text + '</div>' +
+    '<div class="dd-btns">' +
+    '<button class="btn btn-s btn-v" onclick="answerDD(\'v\')">&#9989; Verificado</button>' +
+    '<button class="btn btn-s btn-d" onclick="answerDD(\'d\')">&#10060; Falso</button>' +
+    '</div>';
+  pool.appendChild(card);
+}
+
+function answerDD(chosen) {
+  var item = DD_ITEMS[ddIndex];
+  var isCorrect = (chosen === item.correct);
+
+  if (isCorrect) {
+    ddScore++;
+    document.getElementById('dd-score').textContent = ddScore;
+    addXP(25, '+25 XP · ¡Correcto! 🎯');
+  } else {
+    addXP(5, '+5 XP · Sigue adelante');
+  }
+
+  // Micro-interacción
+  var postEl = document.getElementById('dd-post');
+  if (postEl) {
+    postEl.querySelectorAll('.pa-btn').forEach(function(b) { b.style.pointerEvents = 'none'; b.style.opacity = '.35'; });
+    if (isCorrect) { postEl.classList.add('glow'); } else { postEl.classList.add('shake'); setTimeout(function(){ postEl.classList.remove('shake'); }, 400); }
+  }
+  var fbEl = document.getElementById('dd-fb');
+  if (fbEl) {
+    fbEl.className = 'post-fb ' + (isCorrect ? 'ok' : 'err');
+    fbEl.innerHTML = '<strong>' + (isCorrect ? '&#9989; Correcto.' : '&#10060; Incorrecto.') + '</strong> ' + item.why;
+    fbEl.style.display = 'block';
+  }
+
+  ddDone++;
+  document.getElementById('dd-placed').textContent = ddDone;
+
+  var resultsEl = document.getElementById('dd-results');
+  var div = document.createElement('div');
+  div.className = 'result-item';
+  div.innerHTML =
+    '<div class="ri-ico">' + (isCorrect ? '✅' : '❌') + '</div>' +
+    '<div class="ri-txt">' + item.text.substring(0, 65) + '…' +
+    '<div class="ri-why">' + (isCorrect ? '✓ ' : '✗ Incorrecto — ') + item.why + '</div>' +
+    '</div>';
+  resultsEl.appendChild(div);
+
+  ddIndex++;
+
+  if (ddIndex >= DD_ITEMS.length) {
+    document.getElementById('dd-pool').innerHTML =
+      '<div style="text-align:center;padding:18px 16px;color:var(--lime);font-family:Syne,sans-serif;font-size:17px;font-weight:800;">' +
+      '¡Feed analizado! ' + ddScore + '/5 aciertos 🎊</div>';
+    document.getElementById('btn-dd').disabled = false;
+    addXP(20, 'Misión 1 completa · +20 XP');
+  } else {
+    setTimeout(renderCard, 1200);
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   S3: QUIZ
+═══════════════════════════════════════════════════ */
+var QUESTIONS = [];
+
+function initQuiz() {
+  QUESTIONS = shuffleAndPick(INFOCRITICA_DATA.quiz, 4);
+}
+
+function renderQuestion() {
+  var pipsEl = document.getElementById('q-pips');
+  pipsEl.innerHTML = '';
+  for (var i = 0; i < QUESTIONS.length; i++) {
+    var pip = document.createElement('div');
+    pip.className = 'q-pip' + (i < quizIndex ? ' done' : i === quizIndex ? ' active' : '');
+    pipsEl.appendChild(pip);
+  }
+
+  var area = document.getElementById('q-area');
+
+  if (quizIndex >= QUESTIONS.length) {
+    area.innerHTML =
+      '<div style="text-align:center;padding:18px;">' +
+      '<div style="font-size:42px;margin-bottom:10px;">🎯</div>' +
+      '<div style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;color:var(--lime);">Quiz completado</div>' +
+      '<div style="color:var(--muted);margin-top:8px;">' + quizScore + '/4 correctas &middot; Nivel: <span style="color:var(--lime);font-weight:700;">' + (quizScore >= 3 ? 'Analista ⬆️' : 'Aprendiz') + '</span></div>' +
+      '</div>';
+    document.getElementById('btn-quiz').disabled = false;
+    addXP(40, 'Quiz completo ' + quizScore + '/4 · +40 XP 🧠');
+    return;
+  }
+
+  var q = QUESTIONS[quizIndex];
+  var html = '<div class="q-num">Pregunta ' + (quizIndex + 1) + ' de ' + QUESTIONS.length + '</div>';
+  html += '<div class="q-txt">' + q.q + '</div>';
+  for (var k = 0; k < q.opts.length; k++) {
+    html += '<div class="q-opt" onclick="answerQuiz(' + k + ')">' +
+      '<div class="q-letter">' + ['A', 'B', 'C', 'D'][k] + '</div>' +
+      '<span>' + q.opts[k] + '</span></div>';
+  }
+  html += '<div class="q-fb" id="q-fb"></div>';
+  area.innerHTML = html;
+}
+
+function answerQuiz(idx) {
+  var q = QUESTIONS[quizIndex];
+  var isCorrect = (idx === q.correct);
+  var opts = document.querySelectorAll('.q-opt');
+
+  for (var i = 0; i < opts.length; i++) {
+    opts[i].classList.add('locked');
+    if (i === q.correct) opts[i].classList.add('ok');
+    else if (i === idx && !isCorrect) opts[i].classList.add('wrong');
+  }
+
+  var fb = document.getElementById('q-fb');
+  fb.className = 'q-fb ' + (isCorrect ? 'ok' : 'wrong');
+  fb.textContent = (isCorrect ? '✅ ' : '❌ ') + (isCorrect ? q.ok : q.err);
+  fb.style.display = 'block';
+
+  if (isCorrect) {
+    quizScore++;
+    addXP(30, '+30 XP · Correcto 🎯');
+  } else {
+    addXP(5, '+5 XP');
+  }
+
+  quizIndex++;
+  setTimeout(renderQuestion, 1700);
+}
+
+/* ═══════════════════════════════════════════════════
+   S4: BURBUJA + SLIDER
+═══════════════════════════════════════════════════ */
+var BUBBLE_INSIGHTS = [
+  '<strong>Burbuja activa.</strong> Tu feed muestra solo contenido que confirma lo que ya crees. El algoritmo no busca informarte — busca que sigas scrolleando.',
+  '<strong>25% de apertura.</strong> El algoritmo detecta diversidad, pero la mayoría de tu feed sigue siendo del mismo sesgo.',
+  '<strong>50% de diversidad.</strong> Equilibrio. Ves perspectivas diferentes. Aquí comienza el pensamiento crítico real.',
+  '<strong>75% diverso.</strong> El algoritmo aprende que valoras la variedad. Te sugiere fact-checks en lugar de contenido viral.',
+  '<strong>Feed diverso al 100%.</strong> Ves el mismo hecho desde múltiples perspectivas. Puedes formar una opinión informada.'
+];
+
+function updateBubble(val) {
+  val = parseInt(val);
+  document.getElementById('div-pct').textContent = val + '%';
+
+  // Cambio de tono del contenedor
+  var wrap = document.querySelector('.bub-wrap');
+  if (wrap) {
+    if (val < 30) { wrap.className = 'bub-wrap closed'; }
+    else if (val > 70) { wrap.className = 'bub-wrap open'; }
+    else { wrap.className = 'bub-wrap'; }
+  }
+
+  var slider = document.getElementById('dvs');
+  slider.style.background = 'linear-gradient(to right, var(--lime) ' + val + '%, rgba(255,255,255,.15) ' + val + '%)';
+
+  var biasIds = ['fp0', 'fp1', 'fp2'];
+  var okIds   = ['fn0', 'fn1', 'fn2'];
+
+  for (var i = 0; i < biasIds.length; i++) {
+    document.getElementById(biasIds[i]).style.opacity = Math.max(0.1, 1 - val / 100 * 0.88);
+  }
+  for (var j = 0; j < okIds.length; j++) {
+    document.getElementById(okIds[j]).style.opacity = Math.min(1, val / 55);
+  }
+
+  var tier = Math.min(Math.floor(val / 25), 4);
+  document.getElementById('bub-ins').innerHTML = BUBBLE_INSIGHTS[tier];
+}
+
+/* ── SANITIZACIÓN (sugerencia de seguridad incorporada) ── */
+function limpiarTexto(texto) {
+  var mapa = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#x27;', '/': '&#x2F;' };
+  return texto.replace(/[&<>"'/]/g, function(match) { return mapa[match]; });
+}
+
+function checkReflection() {
+  if (reflectLocked) return;
+  var textoCrudo = document.getElementById('rfl-ta').value.trim();
+  var textoSeguro = limpiarTexto(textoCrudo);
+
+  if (textoSeguro.length > 8) {
+    document.getElementById('rfl-ok').style.display = 'block';
+    addXP(20, '+20 XP · Reflexión guardada 💭');
+    reflectLocked = true;
+
+    /* STUB: cuando tengas backend en Python/Flask, descomenta esto:
+    guardarDatos({ refleccion: textoSeguro, xp: xp, ddScore: ddScore, quizScore: quizScore });
+    */
+  }
+}
+
+/* STUB DE API — activa cuando tengas el backend */
+/*
+async function guardarDatos(datos) {
+  try {
+    var resp = await fetch('https://tu-api-en-python.com/guardar-resultado', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos)
+    });
+    if (resp.ok) showToast('✅ Datos guardados en el servidor');
+  } catch (e) {
+    console.error('Error conectando al servidor:', e);
+  }
+}
+*/
+
+/* ═══════════════════════════════════════════════════
+   S5: RESULTADOS
+═══════════════════════════════════════════════════ */
+function renderResults() {
+  // Conteo animado de XP
+  var xpTarget = xp;
+  var xpCurrent = 0;
+  var xpStep = Math.max(1, Math.ceil(xpTarget / 40));
+  var xpEl = document.getElementById('r-xp');
+  var xpInterval = setInterval(function() {
+    xpCurrent += xpStep;
+    if (xpCurrent >= xpTarget) { xpCurrent = xpTarget; clearInterval(xpInterval); }
+    xpEl.textContent = xpCurrent;
+  }, 25);
+
+  document.getElementById('r-dd').textContent = ddScore + '/5';
+  document.getElementById('r-qz').textContent = quizScore + '/4';
+
+  var pct1 = Math.round(ddScore / 5 * 100);
+  var pct2 = Math.min(100, parseInt(document.getElementById('dvs').value || 0));
+  var pct3 = Math.round(quizScore / 4 * 100);
+
+  document.getElementById('sp1').textContent = pct1 + '%';
+  document.getElementById('sp2').textContent = pct2 + '%';
+  document.getElementById('sp3').textContent = pct3 + '%';
+
+  setTimeout(function() {
+    document.getElementById('sf1').style.width = pct1 + '%';
+    document.getElementById('sf2').style.width = pct2 + '%';
+    document.getElementById('sf3').style.width = pct3 + '%';
+  }, 250);
+
+  // ─── Learning Gain ───
+  var prePct  = Math.round(pretestScore / 3 * 100);
+  var postPct = Math.round(quizScore    / 4 * 100);
+  var gain    = postPct - prePct;
+  var gainBox = document.getElementById('gain-box');
+  if (gainBox) {
+    document.getElementById('gain-pre-pct').textContent  = prePct  + '%';
+    document.getElementById('gain-post-pct').textContent = postPct + '%';
+    document.getElementById('gain-delta-num').textContent = (gain >= 0 ? '+' : '') + gain + '%';
+    document.getElementById('gain-delta-lbl').textContent =
+      gain > 10 ? 'de mejora demostrada &#127881;' :
+      gain > 0  ? 'de mejora — buen inicio' :
+      gain === 0 ? 'Sin cambio — ya tenías el conocimiento' :
+                   'Revisa los módulos y vuelve a intentarlo';
+    setTimeout(function() {
+      document.getElementById('gain-pre-fill').style.width  = prePct  + '%';
+      document.getElementById('gain-post-fill').style.width = postPct + '%';
+    }, 500);
+  }
+
+  var total = ddScore + quizScore;
+  var icon, level, desc;
+
+  if (total >= 7) {
+    icon  = '🏆';
+    level = 'Argumentista';
+    desc  = 'Dominas el pensamiento crítico digital. ¡Lidera la conversación!';
+    document.getElementById('res-tp').textContent = '🏆';
+    document.getElementById('res-t').textContent  = '¡Argumentista desbloqueado!';
+    document.getElementById('res-s').textContent  = 'Dominas las tres habilidades del pensamiento crítico digital';
+  } else if (total >= 5) {
+    icon  = '🥈';
+    level = 'Analista';
+    desc  = 'Sólidas habilidades de verificación. Sigue practicando.';
+    document.getElementById('res-tp').textContent = '🥈';
+  } else {
+    icon  = '🔰';
+    level = 'Aprendiz';
+    desc  = 'Completaste el laboratorio básico de InfoCrítica.';
+  }
+
+  document.getElementById('badge-ico').textContent  = icon;
+  document.getElementById('badge-name').textContent = 'Nivel: ' + level;
+  document.getElementById('badge-desc').textContent = desc;
+}
+
+/* ═══════════════════════════════════════════════════
+   REINICIO
+═══════════════════════════════════════════════════ */
+function restart() {
+  xp = 0; currentScreen = 0; hsOpened = 0;
+  ddScore = 0; ddDone = 0; ddIndex = 0;
+  quizIndex = 0; quizScore = 0; reflectLocked = false;
+
+  document.getElementById('xv').textContent = '0';
+  document.getElementById('hcnt').textContent = '0';
+  document.getElementById('dd-score').textContent = '0';
+  document.getElementById('dd-placed').textContent = '0';
+  document.getElementById('dd-results').innerHTML = '';
+  document.getElementById('dvs').value = 0;
+  document.getElementById('div-pct').textContent = '0%';
+  document.getElementById('rfl-ta').value = '';
+  document.getElementById('rfl-ok').style.display = 'none';
+  document.getElementById('pf').style.width = '0';
+  document.getElementById('res-tp').textContent = '🏅';
+  document.getElementById('res-t').textContent = 'Misión completada';
+  document.getElementById('res-s').textContent = 'Tu perfil de pensamiento crítico digital';
+
+  updateBubble(0);
+
+  for (var i = 0; i < 3; i++) {
+    document.getElementById('hb' + i).classList.remove('open');
+    document.getElementById('hc' + i).classList.remove('open');
+    document.getElementById('hd' + i).classList.remove('open');
+    document.getElementById('hi' + i).textContent = '＋';
+  }
+
+  document.getElementById('btn-hs').disabled   = true;
+  document.getElementById('btn-dd').disabled   = true;
+  document.getElementById('btn-quiz').disabled = true;
+  document.getElementById('q-area').innerHTML  = '';
+  document.getElementById('pt-area').innerHTML = '';
+  document.getElementById('btn-pt').disabled   = true;
+
+  pretestIndex = 0;
+  pretestScore = 0;
+  pretestDone  = false;
+  ddDecisionStart = null;
+
+  KPI.pretest_score   = 0;
+  KPI.pretest_answers = [];
+  KPI.dd_decisions    = [];
+  KPI.completed       = false;
+  KPI.started_at      = Date.now();
+
+  initDD();
+  initQuiz();
+  renderCard();
+  goTo(0);
+}
+
+function shareResult() {
+  var txt = 'Completé InfoCrítica con ' + xp + ' XP — ' + ddScore + '/5 en el Detector y ' + quizScore + '/4 en el Quiz. ¿Tú cómo quedarías? 🔍 #InfoCrítica #PensamientoCrítico';
+  if (navigator.share) {
+    navigator.share({ title: 'InfoCrítica', text: txt });
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(function() { showToast('📋 Copiado al portapapeles'); });
+  }
+}
+
+
+
+
+/* ═══════════════════════════════════════════════════
+   EXPORTAR CSV — KPIs
+═══════════════════════════════════════════════════ */
+function exportCSV() {
+  KPI.dd_score = ddScore;
+  KPI.quiz_score = quizScore;
+  KPI.slider_final = parseInt(document.getElementById('dvs').value || 0);
+  KPI.reflection_length = document.getElementById('rfl-ta').value.trim().length;
+  KPI.total_time_sec = Math.round((Date.now() - KPI.started_at) / 1000);
+
+  var rows = [
+    ['Métrica', 'Valor'],
+    ['Session ID', KPI.session_id],
+    ['Versión', KPI.version],
+    ['Contexto', KPI.contexto],
+    ['Fecha', new Date().toISOString()],
+    ['Tiempo total (seg)', KPI.total_time_sec],
+    ['Pretest score', KPI.pretest_score + '/3'],
+    ['Detector score', KPI.dd_score + '/5'],
+    ['Quiz CER score', KPI.quiz_score + '/4'],
+    ['Slider final (%)', KPI.slider_final],
+    ['Reflexión (caracteres)', KPI.reflection_length],
+    ['Ganancia pre→post (%)', Math.round(quizScore/4*100) - Math.round(pretestScore/3*100)],
+    ['Completado', KPI.completed ? 'Sí' : 'No'],
+    ['---', '---'],
+    ['Decisiones Misión 1', '---'],
+  ];
+
+  KPI.dd_decisions.forEach(function(d, i) {
+    rows.push(['Titular ' + (i+1), 'Correcto: ' + d.correct + ' | Tiempo: ' + d.time_ms + 'ms']);
+  });
+
+  rows.push(['---', '---']);
+  rows.push(['Tiempos por pantalla', '---']);
+  Object.keys(KPI.screens).forEach(function(k) {
+    var s = KPI.screens[k];
+    rows.push([k, s.duration_sec ? s.duration_sec + ' seg' : 'en curso']);
+  });
+
+  var csv = rows.map(function(r) { return r.join(','); }).join('\n');
+  var blob = new Blob([csv], { type: 'text/csv' });
+  var link = document.createElement('a');
+  link.download = 'InfoCritica_KPIs_' + KPI.session_id + '.csv';
+  link.href = URL.createObjectURL(blob);
+  link.click();
+  showToast('Datos exportados 📊');
+}
+
+/* ═══════════════════════════════════════════════════
+   BEACON API — TASA DE ABANDONO
+═══════════════════════════════════════════════════ */
+window.addEventListener('beforeunload', function() {
+  if (!KPI.completed) {
+    KPI.abandoned_at = SCREEN_IDS[currentScreen];
+    KPI.total_time_sec = Math.round((Date.now() - KPI.started_at) / 1000);
+    var payload = JSON.stringify(KPI);
+    try {
+      localStorage.setItem('infocritica_abandoned_' + KPI.session_id, payload);
+    } catch(e) {}
+    // Cuando tengas backend:
+    // navigator.sendBeacon('https://tu-api.com/abandon', payload);
+  }
+});
+
+/* ═══════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════ */
+KPI.session_id = generateUUID();
+KPI.started_at = Date.now();
+kpiEnterScreen('s0');
+initDD();
+initQuiz();
+renderCard();
+</script>
+</body>
+</html>
